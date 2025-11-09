@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>끊Go — 금연·금주 챌린지</title>
+  <style>
+:root{
+  --bg:#0f1724;
+  --card:#0b1220;
+  --muted:#9aa4b2;
+  --accent:#7ee787;
+  --accent2:#4ad0ff;
+  --glass: rgba(255,255,255,0.03);
+  --glass-2: rgba(255,255,255,0.02);
+  --danger:#ff6b6b;
+  --success:#2dd4bf;
+  --font-sans: "Noto Sans KR", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  background:linear-gradient(180deg,#041622 0%, #071029 100%);
+  color:#e6eef6;
+  font-family:var(--font-sans);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 20px;
+  background:linear-gradient(90deg, rgba(255,255,255,0.02), transparent);
+  border-bottom:1px solid rgba(255,255,255,0.03);
+  position:sticky;
+  top:0;
+  z-index:50;
+}
+
+.brand{font-size:20px;font-weight:700}
+.brand .accent{color:var(--accent); margin-left:4px}
+
+.nav{display:flex;gap:8px;align-items:center}
+.nav-btn{
+  background:transparent;border:0;color:var(--muted);padding:8px 10px;border-radius:8px;cursor:pointer;
+}
+.nav-btn.active{color:#fff;background:var(--glass);}
+
+.profile{
+  width:42px;height:42px;border-radius:10px;background:linear-gradient(180deg, #08141f, #06121b);
+  border:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+}
+
+.container{max-width:1080px;margin:18px auto;padding:0 16px;display:grid;grid-template-columns:1fr 420px;gap:16px}
+main .page{grid-column:1/2}
+main .panel{
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border:1px solid rgba(255,255,255,0.03);
+  padding:16px;border-radius:12px;
+  box-shadow: 0 6px 20px rgba(2,6,23,0.6);
+  margin-bottom:12px;
+}
+
+.challenge-list, .feed-list, .ranking-list, .timeline {display:flex;flex-direction:column;gap:10px}
+
+.challenge{
+  display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;background:var(--glass);
+}
+.challenge .meta{font-size:13px;color:var(--muted)}
+
+.controls{display:flex;gap:8px;margin-top:10px}
+
+.primary{
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  color:#072226;border:0;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:700;
+}
+.secondary{
+  background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.03);padding:8px 12px;border-radius:10px;cursor:pointer;
+}
+
+.profile-card{display:flex;flex-direction:column;gap:8px;padding:12px;background:var(--glass-2);border-radius:10px}
+#xpBarWrap{height:12px;background:rgba(255,255,255,0.03);border-radius:8px;overflow:hidden}
+#xpBar{height:100%;width:30%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width 400ms}
+
+.feed-item{background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));padding:12px;border-radius:10px}
+.feed-item .author{font-weight:700}
+.feed-item .meta{font-size:12px;color:var(--muted);margin-bottom:6px}
+.feed-item img{max-width:100%;border-radius:8px;margin-top:8px}
+
+.post-creator{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.post-creator input[type="file"]{padding:6px;background:transparent;color:var(--muted)}
+
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:90}
+.modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);min-width:320px;max-width:720px;padding:16px;background:linear-gradient(180deg,#071422,#06121a);border-radius:12px;border:1px solid rgba(255,255,255,0.04);z-index:95}
+.modal h3{margin-top:0}
+.modal label{display:block;margin:8px 0;font-size:13px}
+.modal input, .modal textarea, .modal select{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+
+.hidden{display:none}
+.footer{max-width:1080px;margin:10px auto;color:var(--muted);font-size:12px;padding:0 16px}
+.ranking-item{display:flex;align-items:center;gap:12px;padding:8px;border-radius:8px;background:var(--glass)}
+.badge{background:rgba(255,255,255,0.03);padding:6px;border-radius:6px;font-size:12px}
+.timeline .entry{background:var(--glass);padding:8px;border-radius:8px}
+.small{font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">끊<span class="accent">Go</span></div>
+    <nav class="nav">
+      <button id="btn-home" class="nav-btn active">홈</button>
+      <button id="btn-feed" class="nav-btn">피드</button>
+      <button id="btn-challenges" class="nav-btn">챌린지</button>
+      <button id="btn-record" class="nav-btn">기록</button>
+      <button id="btn-ranking" class="nav-btn">랭킹</button>
+      <div class="profile" id="profileBtn"></div>
+    </nav>
+  </header>
+
+  <main class="container">
+    <!-- HOME -->
+    <section id="home" class="page">
+      <div class="panel">
+        <h2>오늘의 챌린지</h2>
+        <div id="todayChallengeList" class="challenge-list"></div>
+        <div class="controls">
+          <button id="openCreateChallenge" class="primary">챌린지 만들기</button>
+          <button id="openSeasonModal" class="secondary">시즌 챌린지 보기</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>내 레벨 & 보상</h2>
+        <div id="profileCard" class="profile-card">
+          <div>
+            <div id="profileName">익명</div>
+            <div id="profileStats"></div>
+          </div>
+          <div id="xpBarWrap">
+            <div id="xpBar"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEED -->
+    <section id="feed" class="page hidden">
+      <div class="panel">
+        <h2>인증 피드</h2>
+        <div class="post-creator">
+          <input id="postText" placeholder="오늘의 인증 메시지를 입력하세요..." maxlength="300" />
+          <input id="postImage" type="file" accept="image/*" />
+          <select id="postGroup">
+            <option value="global">전체</option>
+            <option value="school">학교</option>
+            <option value="friends">친구</option>
+            <option value="region">지역</option>
+          </select>
+          <label><input type="checkbox" id="postAnonymous" /> 익명</label>
+          <button id="createPost" class="primary">인증 올리기</button>
+        </div>
+        <div id="feedList" class="feed-list"></div>
+      </div>
+    </section>
+
+    <!-- CHALLENGES -->
+    <section id="challenges" class="page hidden">
+      <div class="panel">
+        <h2>모든 챌린지</h2>
+        <div class="season-area"></div>
+        <div id="allChallenges" class="challenge-list"></div>
+      </div>
+    </section>
+
+    <!-- RECORD -->
+    <section id="record" class="page hidden">
+      <div class="panel">
+        <h2>나의 기록</h2>
+        <div id="recordTimeline" class="timeline"></div>
+      </div>
+    </section>
+
+    <!-- RANKING -->
+    <section id="ranking" class="page hidden">
+      <div class="panel">
+        <h2>오늘의 랭킹</h2>
+        <div id="rankingList" class="ranking-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modals -->
+  <div id="modalBackdrop" class="modal-backdrop hidden"></div>
+
+  <div id="modalCreateChallenge" class="modal hidden">
+    <h3>새 챌린지 만들기</h3>
+    <label>이름 <input id="chName" /></label>
+    <label>타입
+      <select id="chType">
+        <option value="personal">개인</option>
+        <option value="team">팀</option>
+        <option value="season">시즌(기간)</option>
+      </select>
+    </label>
+    <label>기간(시즌만) 시작 <input id="chStart" type="date" /></label>
+    <label>종료 <input id="chEnd" type="date" /></label>
+    <label>목표(예: 30일) <input id="chGoal" type="number" min="1" value="30" /></label>
+    <label>설명 <textarea id="chDesc"></textarea></label>
+    <div class="modal-actions">
+      <button id="saveChallenge" class="primary">저장</button>
+      <button id="cancelChallenge" class="secondary">취소</button>
+    </div>
+  </div>
+
+  <div id="modalSeason" class="modal hidden">
+    <h3>시즌 챌린지</h3>
+    <div id="seasonList"></div>
+    <div class="modal-actions">
+      <button id="closeSeason" class="secondary">닫기</button>
+    </div>
+  </div>
+
+  <div id="modalProfile" class="modal hidden">
+    <h3>프로필</h3>
+    <label>닉네임 <input id="inputNickname" maxlength="20" /></label>
+    <label>익명 표시 <input id="inputAnon" type="checkbox" /></label>
+    <div class="modal-actions">
+      <button id="saveProfile" class="primary">저장</button>
+      <button id="closeProfile" class="secondary">취소</button>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <small>skycloud22 Tech • 끊Go — 금연·금주 챌린지 앱 (로컬 데모)</small>
+  </footer>
+
+  <script>
+/* 끊Go — app.js
+   로컬 only demo. localStorage 사용.
+   확장 포인트(백엔드 통합): save/load 함수 교체.
+*/
+
+(() => {
+  // --- 유틸 ---
+  const $ = (s, el=document) => el.querySelector(s);
+  const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
+  const uid = (p='id') => p + '_' + Math.random().toString(36).slice(2,9);
+  const todayISO = () => (new Date()).toISOString().slice(0,10);
+
+  // --- 데이터 모델(로컬스토리지) ---
+  const STORE_KEY = 'kkeunGo_v1';
+  const defaultState = {
+    users: {}, // id -> {id, nickname, anon, xp, level, avatar, createdAt}
+    currentUserId: null,
+    challenges: [], // {id,name,type,goal,start,end,desc,creatorId,participants:[],history:{}}
+    posts: [], // {id,authorId,text,image,dataURL,group,anon,likes:[userId],comments:[{id,authorId,text,date}],date}
+    settings: {seasonMode:true}
+  };
+
+  function loadState(){
+    const raw = localStorage.getItem(STORE_KEY);
+    if(!raw) {
+      const s = {...defaultState};
+      // 초기 사용자 생성
+      const me = {id: uid('user'), nickname:'익명', anon:false, xp:0, level:1, createdAt: new Date().toISOString()};
+      s.users[me.id]=me;
+      s.currentUserId = me.id;
+      // 기본 챌린지 샘플
+      s.challenges.push({
+        id: uid('ch'),
+        name: '30일 금연 챌린지',
+        type: 'season',
+        goal: 30,
+        start: todayISO(),
+        end: (() => { let d=new Date(); d.setDate(d.getDate()+29); return d.toISOString().slice(0,10)})(),
+        desc: '처음 시작하는 사람을 위한 30일 프로그램',
+        creatorId: me.id,
+        participants: [me.id],
+        history: {} // {userId: {date:'2025-11-06', successDates:[],streak:0,completed:false}}
+      });
+      localStorage.setItem(STORE_KEY, JSON.stringify(s));
+      return s;
+    }
+    try {
+      return JSON.parse(raw);
+    } catch(e){
+      console.error('state parse err', e);
+      localStorage.removeItem(STORE_KEY);
+      return loadState();
+    }
+  }
+  function saveState(){
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    renderAll();
+  }
+
+  let state = loadState();
+
+  // --- 현재 유저 helper ---
+  function getCurrentUser(){ return state.users[state.currentUserId]; }
+  function addXP(userId, amount){
+    const u = state.users[userId];
+    if(!u) return;
+    u.xp = (u.xp||0) + amount;
+    // 레벨업: 예시 기준 100xp마다 레벨 업
+    const newLevel = Math.floor(u.xp / 100) + 1;
+    if(newLevel > u.level){
+      u.level = newLevel;
+      // 보상 포인트 or 뱃지 처리(간단 알림)
+      alert(`${u.nickname || '익명'}님이 레벨업! 현재 레벨 ${u.level} 🎉`);
+    }
+  }
+
+  // --- 렌더링 ---
+  function renderAll(){
+    renderNav();
+    renderHome();
+    renderFeed();
+    renderChallenges();
+    renderProfileCard();
+    renderRecord();
+    renderRanking();
+  }
+
+  function renderNav(){
+    const active = [...$$('.nav-btn')].find(b=>b.classList.contains('active'));
+    // profile display
+    const prof = $('#profileBtn');
+    const u = getCurrentUser();
+    prof.textContent = u.nickname ? u.nickname[0].toUpperCase() : '익';
+  }
+
+  function renderHome(){
+    const el = $('#todayChallengeList');
+    el.innerHTML='';
+    const myId = state.currentUserId;
+    const today = todayISO();
+
+    // show active challenges
+    state.challenges.forEach(ch=>{
+      // show only challenges where participant or public
+      const inParticipant = ch.participants.includes(myId);
+      const active = (!ch.start || ch.start<=today) && (!ch.end || ch.end>=today);
+      const card = document.createElement('div');
+      card.className='challenge';
+      const left = document.createElement('div');
+      left.innerHTML = `<div class="title">${ch.name}</div><div class="meta">${ch.type} • 목표 ${ch.goal}일</div>`;
+      const right = document.createElement('div');
+
+      if(inParticipant){
+        const stData = ch.history[myId] || {successDates:[],streak:0,completed:false};
+        const lastSuccess = (stData.successDates.length?stData.successDates[stData.successDates.length-1]:'-');
+        const btn = document.createElement('button');
+        btn.className='primary';
+        btn.textContent = stData.successDates && stData.successDates.includes(today) ? '오늘 성공!' : '오늘 체크인';
+        btn.onclick = ()=> { toggleDailyCheck(ch.id, myId); };
+        const sub = document.createElement('div');
+        sub.className='small';
+        sub.textContent = `연속 ${stData.streak || 0}일 • 최근: ${lastSuccess}`;
+        right.appendChild(btn);
+        right.appendChild(sub);
+      } else {
+        const joinBtn = document.createElement('button');
+        joinBtn.className='secondary';
+        joinBtn.textContent = '참여하기';
+        joinBtn.onclick = ()=> joinChallenge(ch.id, myId);
+        right.appendChild(joinBtn);
+      }
+      card.appendChild(left);
+      card.appendChild(right);
+      el.appendChild(card);
+    });
+  }
+
+  function renderFeed(){
+    const feed = $('#feedList');
+    feed.innerHTML='';
+    // 최신순
+    const posts = state.posts.slice().sort((a,b)=> new Date(b.date)-new Date(a.date));
+    posts.forEach(p=>{
+      const item = document.createElement('div'); item.className='feed-item';
+      const author = state.users[p.authorId] || {nickname:'익명'};
+      const name = p.anon ? '익명' : author.nickname || '익명';
+      item.innerHTML = `
+        <div class="author">${name} <span class="small meta">• ${new Date(p.date).toLocaleString()}</span></div>
+        <div class="meta small">그룹: ${p.group}</div>
+        <div class="text">${escapeHtml(p.text)}</div>
+      `;
+      if(p.image){
+        const img = document.createElement('img');
+        img.src = p.image;
+        item.appendChild(img);
+      }
+      const actions = document.createElement('div');
+      actions.style.marginTop='8px';
+      const likeBtn = document.createElement('button'); likeBtn.className='secondary'; likeBtn.textContent=`좋아요 ${p.likes.length||0}`;
+      likeBtn.onclick = ()=> toggleLikePost(p.id);
+      const commentBtn = document.createElement('button'); commentBtn.className='secondary'; commentBtn.textContent='댓글';
+      commentBtn.onclick = ()=> promptComment(p.id);
+      actions.appendChild(likeBtn); actions.appendChild(commentBtn);
+      item.appendChild(actions);
+
+      // comments
+      if(p.comments && p.comments.length){
+        const comWrap = document.createElement('div'); comWrap.style.marginTop='8px';
+        p.comments.forEach(c=>{
+          const ca = state.users[c.authorId] || {nickname:'익명'};
+          const name = c.anon ? '익명' : ca.nickname || '익명';
+          const div = document.createElement('div'); div.className='small';
+          div.textContent = `${name}: ${c.text} • ${new Date(c.date).toLocaleString()}`;
+          comWrap.appendChild(div);
+        });
+        item.appendChild(comWrap);
+      }
+
+      feed.appendChild(item);
+    });
+  }
+
+  function renderChallenges(){
+    const all = $('#allChallenges');
+    all.innerHTML='';
+    state.challenges.forEach(ch=>{
+      const el = document.createElement('div'); el.className='challenge';
+      const left = document.createElement('div'); left.innerHTML = `<div class="title">${ch.name}</div><div class="meta">${ch.type} • ${ch.start||'-'} ~ ${ch.end||'-'}</div>`;
+      const right = document.createElement('div');
+      const joinCount = ch.participants.length;
+      right.innerHTML = `<div class="meta">참여 ${joinCount}명</div>`;
+      const infoBtn = document.createElement('button'); infoBtn.className='secondary'; infoBtn.textContent='상세';
+      infoBtn.onclick = ()=> showChallengeDetail(ch.id);
+      right.appendChild(infoBtn);
+      el.appendChild(left); el.appendChild(right);
+      all.appendChild(el);
+    });
+
+    // season area
+    const seasonArea = document.querySelector('.season-area');
+    seasonArea.innerHTML = '';
+    const seasons = state.challenges.filter(c=>c.type==='season');
+    if(seasons.length){
+      const swrap = document.createElement('div');
+      swrap.className='panel';
+      swrap.style.marginTop='10px';
+      swrap.innerHTML = '<h3>진행중인 시즌</h3>';
+      const list = document.createElement('div');
+      seasons.forEach(s=>{
+        const d = document.createElement('div'); d.className='challenge';
+        d.innerHTML = `<div><strong>${s.name}</strong><div class="meta">${s.start} ~ ${s.end}</div></div><div><button class="secondary">참여</button></div>`;
+        d.querySelector('button').onclick = ()=> joinChallenge(s.id, state.currentUserId);
+        list.appendChild(d);
+      });
+      swrap.appendChild(list);
+      seasonArea.appendChild(swrap);
+    }
+  }
+
+  function renderProfileCard(){
+    const u = getCurrentUser();
+    $('#profileName').textContent = u.nickname || '익명';
+    $('#profileStats').textContent = `레벨 ${u.level} • XP ${u.xp||0}`;
+    const percent = Math.min(100, ((u.xp||0) % 100));
+    $('#xpBar').style.width = percent + '%';
+  }
+
+  function renderRecord(){
+    const t = $('#recordTimeline'); t.innerHTML='';
+    // collect history: for simplicity, show posts + challenge checkins
+    // posts:
+    const posts = state.posts.slice().filter(p=>p.authorId===state.currentUserId).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    posts.forEach(p=>{
+      const e = document.createElement('div'); e.className='entry';
+      e.textContent = `[인증] ${new Date(p.date).toLocaleString()} — ${p.text}`;
+      t.appendChild(e);
+    });
+    // challenge checkins:
+    state.challenges.forEach(ch=>{
+      const h = ch.history[state.currentUserId];
+      if(!h) return;
+      h.successDates.slice().reverse().forEach(d=>{
+        const e = document.createElement('div'); e.className='entry';
+        e.textContent = `[체크인] ${d} — ${ch.name}`;
+        t.appendChild(e);
+      });
+    });
+  }
+
+  function renderRanking(){
+    const wrap = $('#rankingList'); wrap.innerHTML='';
+    // simple ranking: based on xp, then streak across challenges
+    const usersArr = Object.values(state.users);
+    // compute overall streak per user (max streak among their challenges)
+    const streaks = {};
+    usersArr.forEach(u=>{
+      let best = 0;
+      state.challenges.forEach(ch=>{
+        const h = ch.history[u.id];
+        if(h && h.streak) best = Math.max(best, h.streak);
+      });
+      streaks[u.id] = best;
+    });
+    usersArr.sort((a,b)=> {
+      const diff = (b.xp||0) - (a.xp||0);
+      if(diff!==0) return diff;
+      return (streaks[b.id]||0) - (streaks[a.id]||0);
+    });
+    usersArr.forEach((u, idx)=>{
+      const div = document.createElement('div'); div.className='ranking-item';
+      div.innerHTML = `<div style="width:40px;text-align:center">${idx+1}</div>
+                       <div style="flex:1"><strong>${u.nickname||'익명'}</strong><div class="small">레벨 ${u.level} • XP ${u.xp||0} • 최대연속 ${streaks[u.id]||0}일</div></div>
+                       <div class="badge">#${u.level}</div>`;
+      wrap.appendChild(div);
+    });
+  }
+
+  // --- 동작: 챌린지 조작 ---
+  function joinChallenge(chId, userId){
+    const ch = state.challenges.find(c=>c.id===chId);
+    if(!ch) return alert('챌린지를 찾을 수 없습니다.');
+    if(!ch.participants.includes(userId)){
+      ch.participants.push(userId);
+      ch.history[userId] = ch.history[userId] || {successDates:[],streak:0,completed:false};
+      saveState();
+      alert('참여했습니다!');
+    } else alert('이미 참여중입니다.');
+  }
+
+  function toggleDailyCheck(chId, userId){
+    const ch = state.challenges.find(c=>c.id===chId);
+    if(!ch) return;
+    const today = todayISO();
+    ch.history[userId] = ch.history[userId] || {successDates:[],streak:0,completed:false};
+    const h = ch.history[userId];
+    if(h.successDates.includes(today)){
+      // undo today's
+      h.successDates = h.successDates.filter(d=>d!==today);
+      // recompute streak: naive recompute based on consecutive dates ending at last success
+      h.streak = computeStreak(h.successDates);
+      saveState();
+      return;
+    }
+    // add today's
+    h.successDates.push(today);
+    // recompute streak (consecutive up to today)
+    h.streak = computeStreak(h.successDates);
+    // add XP reward
+    addXP(userId, 10);
+    // if reached goal
+    if(h.successDates.length >= (ch.goal||30) && !h.completed){
+      h.completed = true;
+      addXP(userId, 100); // 보상
+      alert(`축하합니다! '${ch.name}' 완료 보상 수령 🎉`);
+    }
+    saveState();
+  }
+
+  function computeStreak(dates){
+    if(!dates || !dates.length) return 0;
+    // convert to set
+    const set = new Set(dates);
+    let streak = 0;
+    let cursor = new Date();
+    // check backwards from today
+    while(true){
+      const iso = cursor.toISOString().slice(0,10);
+      if(set.has(iso)){ streak++; cursor.setDate(cursor.getDate()-1); }
+      else break;
+    }
+    return streak;
+  }
+
+  // --- 포스트(인증) ---
+  function createPost({text,image,group,anon}){
+    const post = {
+      id: uid('post'),
+      authorId: state.currentUserId,
+      text: text||'',
+      image: image||null,
+      group: group||'global',
+      anon: !!anon,
+      likes: [],
+      comments: [],
+      date: new Date().toISOString()
+    };
+    state.posts.push(post);
+    // XP for posting
+    addXP(state.currentUserId, 5);
+    saveState();
+  }
+
+  function toggleLikePost(postId){
+    const p = state.posts.find(x=>x.id===postId);
+    if(!p) return;
+    const uid = state.currentUserId;
+    const i = p.likes.indexOf(uid);
+    if(i>=0) p.likes.splice(i,1);
+    else p.likes.push(uid);
+    if(i<0) addXP(uid,2);
+    saveState();
+  }
+
+  function promptComment(postId){
+    const text = prompt('댓글 입력');
+    if(!text) return;
+    const c = {id:uid('c'), authorId: state.currentUserId, text, date: new Date().toISOString()};
+    const p = state.posts.find(x=>x.id===postId);
+    p.comments.push(c);
+    addXP(state.currentUserId,3);
+    saveState();
+  }
+
+  // --- 챌린지 상세 ---
+  function showChallengeDetail(chId){
+    const ch = state.challenges.find(c=>c.id===chId);
+    if(!ch) return;
+    alert(`${ch.name}\n타입: ${ch.type}\n목표: ${ch.goal}일\n설명: ${ch.desc || '-'}`);
+  }
+
+  // --- 이벤트 바인딩 & 초기 UI ---
+  function initUI(){
+    // nav buttons
+    $('#btn-home').onclick = ()=> showPage('home', '#btn-home');
+    $('#btn-feed').onclick = ()=> showPage('feed', '#btn-feed');
+    $('#btn-challenges').onclick = ()=> showPage('challenges', '#btn-challenges');
+    $('#btn-record').onclick = ()=> showPage('record', '#btn-record');
+    $('#btn-ranking').onclick = ()=> showPage('ranking', '#btn-ranking');
+
+    // profile modal
+    $('#profileBtn').onclick = ()=> openModal('modalProfile');
+    $('#saveProfile').onclick = ()=>{
+      const name = $('#inputNickname').value.trim();
+      const anon = $('#inputAnon').checked;
+      const u = getCurrentUser();
+      if(name) u.nickname = name;
+      u.anon = !!anon;
+      saveState();
+      closeModal();
+    };
+    $('#closeProfile').onclick = closeModal;
+
+    // create challenge
+    $('#openCreateChallenge').onclick = ()=> {
+      openModal('modalCreateChallenge');
+    };
+    $('#cancelChallenge').onclick = closeModal;
+    $('#saveChallenge').onclick = ()=>{
+      const name = $('#chName').value.trim();
+      const type = $('#chType').value;
+      const start = $('#chStart').value || null;
+      const end = $('#chEnd').value || null;
+      const goal = parseInt($('#chGoal').value) || 30;
+      const desc = $('#chDesc').value;
+      if(!name){ return alert('이름을 입력하세요'); }
+      const ch = { id: uid('ch'), name, type, start, end, goal, desc, creatorId: state.currentUserId, participants:[state.currentUserId], history:{} };
+      ch.history[state.currentUserId] = {successDates:[],streak:0,completed:false};
+      state.challenges.push(ch);
+      addXP(state.currentUserId, 20);
+      saveState();
+      closeModal();
+    };
+
+    // season modal
+    $('#openSeasonModal').onclick = ()=> openModal('modalSeason');
+    $('#closeSeason').onclick = closeModal;
+
+    // posts
+    $('#createPost').onclick = async ()=>{
+      const text = $('#postText').value.trim();
+      const fileInput = $('#postImage');
+      let dataURL = null;
+      if(fileInput.files && fileInput.files[0]){
+        dataURL = await fileToDataURL(fileInput.files[0]);
+      }
+      const group = $('#postGroup').value;
+      const anon = $('#postAnonymous').checked;
+      createPost({text,image:dataURL,group,anon});
+      $('#postText').value=''; fileInput.value='';
+    };
+
+    // profile settings load
+    const u = getCurrentUser();
+    $('#inputNickname').value = u.nickname || '';
+    $('#inputAnon').checked = u.anon || false;
+
+    // profile click open
+    $('#profileBtn').addEventListener('contextmenu', e=>{ e.preventDefault(); alert('프로필 우클릭 메뉴: (데모)'); });
+
+    // initial page
+    showPage('home', '#btn-home');
+    renderAll();
+  }
+
+  // --- modal helpers ---
+  function openModal(id){
+    $('#modalBackdrop').classList.remove('hidden');
+    $(`#${id}`).classList.remove('hidden');
+  }
+  function closeModal(){
+    $('#modalBackdrop').classList.add('hidden');
+    $$('.modal').forEach(m=>m.classList.add('hidden'));
+    // refresh profile inputs
+    const u = getCurrentUser();
+    $('#inputNickname').value = u.nickname || '';
+    $('#inputAnon').checked = u.anon || false;
+  }
+
+  function showPage(pageId, btnSelector){
+    $$('.page').forEach(p=>p.classList.add('hidden'));
+    $(`#${pageId}`).classList.remove('hidden');
+    $$('.nav-btn').forEach(b=>b.classList.remove('active'));
+    if(btnSelector) $(btnSelector).classList.add('active');
+    renderAll();
+  }
+
+  // helpers
+  function fileToDataURL(file){
+    return new Promise((res,rej)=>{
+      const r = new FileReader();
+      r.onload = ()=> res(r.result);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+  }
+  function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  // init sample additional users for ranking demo (only first load)
+  function seedExtraUsers(){
+    if(Object.keys(state.users).length < 2){
+      const a = {id: uid('user'), nickname:'하늘', anon:false, xp:170, level:2, createdAt:new Date().toISOString()};
+      const b = {id: uid('user'), nickname:'바다', anon:false, xp:95, level:1, createdAt:new Date().toISOString()};
+      state.users[a.id]=a; state.users[b.id]=b;
+      saveState();
+    }
+  }
+
+  // --- init startup ---
+  seedExtraUsers();
+  initUI();
+
+  // expose for debug
+  window.kkeunGo = { state, saveState, loadState };
+})();
+  </script>
+</body>
+</html>
